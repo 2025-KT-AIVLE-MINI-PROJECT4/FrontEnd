@@ -1,47 +1,72 @@
 // src/pages/main/MainPage.jsx
-import React, { useState, useEffect } from 'react';
-import { getBooks } from '../../api/bookApi';
+import React, { useState, useEffect, useCallback } from 'react'; // useCallback import
+import { getBooks, deleteBook as apiDeleteBook } from '../../api/bookApi'; // deleteBook import
 import BookCard from '../../components/BookCard';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { useAuth } from '../../contexts/AuthContext';
-import { Box, Typography, Grid, Button } from '@mui/material'; // Button import 추가
-import RefreshIcon from '@mui/icons-material/Refresh'; // RefreshIcon import 추가
+import { Box, Typography, Grid, Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material'; // Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress import
+import RefreshIcon from '@mui/icons-material/Refresh'; // RefreshIcon import
 
 const MainPage = ({ onNavigate, onSelectBook }) => {
   const { user, showToast } = useAuth();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null); // 에러 상태 추가
 
-  // loadBooks 함수를 useEffect 밖으로 빼고, 필요시 수동 호출 가능하게 함
-  const loadBooks = async () => {
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [bookToDelete, setBookToDelete] = useState(null);
+
+  // loadBooks 함수를 useCallback으로 감싸서 불필요한 재생성 방지
+  const loadBooks = useCallback(async () => {
     setLoading(true);
+    setError(null); // 새로운 로딩 시작 시 에러 초기화
     try {
       const booksData = await getBooks();
       setBooks(booksData);
+    } catch (err) {
+      setError('도서 목록을 불러오는데 실패했습니다.'); // 사용자에게 보여줄 에러 메시지
+      showToast('도서 목록을 불러오는데 실패했습니다: ' + err.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    // 컴포넌트 마운트 시 한 번만 호출
+    loadBooks();
+  }, [loadBooks]);
+
+  const handleRefreshClick = () => {
+    loadBooks(); // 버튼 클릭 시 수동으로 데이터 다시 불러오기
+  };
+
+  const handleDeleteClick = (book) => {
+    setBookToDelete(book);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteBook = async () => {
+    if (!bookToDelete) return;
+    setLoading(true); // 삭제 작업 중 로딩 표시 (버튼 비활성화)
+    try {
+      const result = await apiDeleteBook(bookToDelete.id);
+      showToast(result.message, 'success');
+      setDeleteModalOpen(false);
+      setBookToDelete(null);
+      loadBooks(); // 삭제 후 목록 새로고침
     } catch (error) {
-      showToast('도서 목록을 불러오는데 실패했습니다: ' + error.message, 'error');
+      showToast('도서 삭제에 실패했습니다: ' + error.message, 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    // 컴포넌트가 마운트될 때 한 번만 loadBooks 호출
-    loadBooks();
-  }, []); // 의존성 배열이 비어 있으므로 컴포넌트 마운트 시 한 번만 실행
-
-  // 새로고침 버튼 클릭 핸들러
-  const handleRefreshClick = () => {
-    loadBooks(); // loadBooks 함수 실행
-  };
-
   return (
     <Box sx={{ maxWidth: 'lg', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: 4 }}>
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}> {/* 버튼 배치를 위해 display: 'flex' 추가 */}
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
           모든 도서
         </Typography>
-        {/* 새로고침 버튼 추가 */}
         <Button
           variant="outlined"
           startIcon={<RefreshIcon />}
@@ -54,6 +79,19 @@ const MainPage = ({ onNavigate, onSelectBook }) => {
 
       {loading ? (
         <LoadingSpinner />
+      ) : error ? ( // 에러가 있을 경우 에러 메시지와 재시도 버튼 표시
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Typography variant="h6" color="error" sx={{ mb: 2 }}>
+            {error}
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={handleRefreshClick}
+            startIcon={<RefreshIcon />}
+          >
+            다시 불러오기
+          </Button>
+        </Box>
       ) : (
         <>
           {books.length > 0 ? (
@@ -62,9 +100,11 @@ const MainPage = ({ onNavigate, onSelectBook }) => {
                 <Grid item key={book.id} xs={12} sm={6} md={4} lg={3}>
                   <BookCard
                     book={book}
-                    isOwner={user && book.authorId === user.id} // 소유자 여부 판단
+                    isOwner={user && parseInt(book.authorId, 10) === parseInt(user.id, 10)} // isOwner 판단 로직 (타입 일치 확인)
                     onEdit={() => onNavigate('editBook', book)} // 수정 버튼 동작
-                    onDelete={() => { /* onDelete는 MyBooksPage에서만 사용 */ }}
+                    // --- onDelete prop 연결 수정 ---
+                    onDelete={handleDeleteClick} // 이제 handleDeleteClick 함수를 전달
+                    // -----------------------------
                     onView={() => onSelectBook('bookDetail', book.id)} // 상세 페이지 이동
                   />
                 </Grid>
@@ -78,6 +118,24 @@ const MainPage = ({ onNavigate, onSelectBook }) => {
           )}
         </>
       )}
+
+      <Dialog
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+      >
+        <DialogTitle>도서 삭제 확인</DialogTitle>
+        <DialogContent>
+          <Typography>정말로 "{bookToDelete?.title}"을(를) 삭제하시겠습니까?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteModalOpen(false)} disabled={loading}>
+            취소
+          </Button>
+          <Button onClick={confirmDeleteBook} color="error" variant="contained" disabled={loading}>
+            {loading ? <CircularProgress size={24} color="inherit" /> : '삭제'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
