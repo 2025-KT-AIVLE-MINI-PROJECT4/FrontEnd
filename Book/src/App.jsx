@@ -1,35 +1,38 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
+import {useNavigate} from "react-router-dom"
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+
+  const navigate = useNavigate();
 
   return (
     <>
+    <div>
       <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+        <h1>도서 관리 시스템</h1>
+        <div>
+          <input
+            type="text"
+            placeholder="아이디"
+            className="id"/>
+        </div>
+        <div>
+          <input
+            type="password"
+            placeholder="비밀번호"
+            className="pw"/>
+        </div>
+        <div>
+          <button>
+            로그인
+          </button>
+          <button onClick={() => navigate("/newUser")}>
+            회원가입
+          </button>
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+    </div>
     </>
   )
 }
-
-export default App
