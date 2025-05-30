@@ -5,7 +5,7 @@ import HomePage from "../pages/Home/HomePage";
 
 const setting = [
     {
-        path: '/',
+        path: '/home',
         element: <HomePage /> // home 엘리먼트 수정 필요
     }
 ];
