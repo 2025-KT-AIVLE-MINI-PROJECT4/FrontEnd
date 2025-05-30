@@ -14,7 +14,7 @@ const MyBooksPage = ({ onNavigate, onEditBook, onSelectBook }) => {
   const [bookToDelete, setBookToDelete] = useState(null);
 
   const loadMyBooks = async () => {
-    if (!user) return;
+    if (!user) return; // user가 없으면 (로그아웃 상태) 함수 종료
     setLoading(true);
     try {
       const booksData = await getMyBooks();
@@ -26,9 +26,11 @@ const MyBooksPage = ({ onNavigate, onEditBook, onSelectBook }) => {
     }
   };
 
+  // user와 showToast가 변경될 때마다 loadMyBooks를 다시 로드
+  // user는 로그인/로그아웃 시 변경, showToast는 일반적으로 안정적
   useEffect(() => {
     loadMyBooks();
-  }, [user, showToast]);
+  }, [user, showToast]); // 의존성 배열에 user와 showToast 유지
 
   const handleDeleteClick = (book) => {
     setBookToDelete(book);
@@ -43,7 +45,7 @@ const MyBooksPage = ({ onNavigate, onEditBook, onSelectBook }) => {
       showToast(result.message, 'success');
       setDeleteModalOpen(false);
       setBookToDelete(null);
-      loadMyBooks();
+      loadMyBooks(); // 삭제 후 목록 새로고침
     } catch (error) {
       showToast('도서 삭제에 실패했습니다: ' + error.message, 'error');
     } finally {
@@ -75,7 +77,7 @@ const MyBooksPage = ({ onNavigate, onEditBook, onSelectBook }) => {
                     isOwner={user && book.authorId === user.id}
                     onEdit={onEditBook}
                     onDelete={handleDeleteClick}
-                    onView={() => onSelectBook(book.id)}
+                    onView={() => onSelectBook('bookDetail', book.id)}
                   />
                 </Grid>
               ))}
