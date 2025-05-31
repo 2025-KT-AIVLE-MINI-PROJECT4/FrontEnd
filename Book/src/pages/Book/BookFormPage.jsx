@@ -7,7 +7,6 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'; // AI 아이콘 �
 
 // .env 파일에서 환경 변수 불러오기 (Vite 환경)
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 const StyledTextarea = styled(TextareaAutosize)(({ theme }) => ({
   width: '100%',
@@ -27,7 +26,7 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
   const { user, showToast, loading: authLoading } = useAuth();
   const [form, setForm] = useState({
     title: '', author: '', publisher: '', publishedDate: '',
-    content: '', price: '', category: '', imageURL: ''
+    content: '', price: '', category: '', imageUrl: ''
   });
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false); // AI 이미지 생성 로딩 상태
@@ -44,12 +43,12 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
         content: initialBook.content || '',
         price: initialBook.price === null ? '' : initialBook.price,
         category: initialBook.category || '',
-        imageURL: initialBook.imageURL || ''
+        imageUrl: initialBook.imageUrl || '' 
       });
     } else {
       setForm({
         title: '', author: '', publisher: '', publishedDate: '',
-        content: '', price: '', category: '', imageURL: ''
+        content: '', price: '', category: '', imageUrl: ''
       });
     }
   }, [initialBook, isEditing]);
@@ -69,7 +68,9 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
     try {
       const submittedForm = {
         ...form,
-        price: form.price === '' ? null : Number(form.price)
+        price: form.price === '' ? null : Number(form.price),
+        // imageUrl 필드는 이미 form 상태에 있으며, DALL-E URL이 저장됩니다.
+        // 이 URL이 mapBookRequestToBackend를 통해 백엔드로 전달됩니다.
       };
 
       let resultBook;
@@ -83,7 +84,7 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
       onComplete(resultBook);
     } catch (error) {
       console.error("도서 저장 실패:", error);
-      showToast('도서 저장에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
+      showToast('도서 저장에 실패했습니다: ' + (error.response?.data?.error || error.message), 'error');
     } finally {
       setLoading(false);
     }
@@ -130,36 +131,13 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
     }
   };
 
-  // 백엔드 이미지 업로드 API 호출 함수 (MinIO에 저장)
-  const uploadImageToMinIO = async (dalleImageUrl) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/images/upload-from-url`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // 사용자 토큰이 필요하다면 여기에 포함 (예: `user.token`이 존재하고 유효할 때)
-          'Authorization': user?.token ? `Bearer ${user.token}` : ''
-        },
-        body: JSON.stringify({ imageUrl: dalleImageUrl })
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        showToast('이미지가 성공적으로 업로드되었습니다!', 'success');
-        return data.url; // MinIO에 저장된 최종 URL 반환
-      } else {
-        console.error("MinIO 업로드 API 오류 응답:", data);
-        throw new Error(data.message || '이미지 업로드 실패');
-      }
-    } catch (error) {
-      console.error("MinIO 업로드 오류:", error);
-      showToast('이미지 업로드 중 오류가 발생했습니다: ' + (error.response?.data?.message || error.message), 'error');
-      return null;
-    }
-  };
-
   const handleGenerateAndUploadImage = async () => {
-    // 제목, 줄거리, 카테고리를 기반으로 프롬프트 생성
+    if (!user) {
+        showToast('로그인이 필요합니다.', 'error');
+        return;
+    }
+
+    // AI 이미지 생성을 위한 프롬프트 생성
     const promptParts = [];
     if (form.title.trim()) promptParts.push(`"${form.title}"이라는 제목의`);
     if (form.content.trim()) promptParts.push(`줄거리는 "${form.content}"입니다.`);
@@ -179,15 +157,18 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
     
     showToast('AI 이미지 생성 중... 잠시 기다려주세요.', 'info');
 
-    // DALL-E로 이미지 생성
-    const dalleTempImageUrl = await generateImageWithAI(generatedPrompt);
+    try {
+        // DALL-E로 새 이미지 생성
+        const dalleimageUrl = await generateImageWithAI(generatedPrompt);
 
-    if (dalleTempImageUrl) {
-      // 생성된 임시 이미지를 백엔드를 통해 MinIO에 업로드
-      const finalImageUrl = await uploadImageToMinIO(dalleTempImageUrl);
-      if (finalImageUrl) {
-        setForm(prev => ({ ...prev, imageURL: finalImageUrl }));
-      }
+        if (dalleimageUrl) {
+            // 생성된 DALL-E URL을 바로 imageUrl 상태에 저장
+            setForm(prev => ({ ...prev, imageUrl: dalleimageUrl }));
+            showToast('AI 이미지 생성이 완료되었습니다!', 'success');
+        }
+    } catch (error) {
+        console.error("AI 이미지 생성 중 오류:", error);
+        showToast('AI 이미지 생성 중 예상치 못한 오류가 발생했습니다: ' + error.message, 'error');
     }
   };
 
@@ -276,10 +257,10 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
               <TextField
                 fullWidth
                 label="이미지 URL"
-                id="imageURL"
-                name="imageURL"
+                id="imageUrl"
+                name="imageUrl"
                 type="url"
-                value={form.imageURL}
+                value={form.imageUrl}
                 onChange={handleChange}
                 placeholder="https://example.com/image.jpg"
                 variant="outlined"
@@ -314,7 +295,7 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>이미지 미리보기</Typography>
               <Box
                 component="img"
-                src={form.imageURL || 'https://via.placeholder.com/250x350?text=No+Image'}
+                src={form.imageUrl || 'https://via.placeholder.com/250x350?text=No+Image'}
                 alt="도서 이미지"
                 sx={{
                   width: '100%',
@@ -326,14 +307,13 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
                   mb: 2,
                 }}
               />
-              {/* 프롬프트 입력 필드 제거 */}
               <Button
                 variant="contained"
                 color="secondary"
                 startIcon={<AutoAwesomeIcon />}
                 onClick={handleGenerateAndUploadImage}
                 fullWidth
-                disabled={aiLoading || loading}
+                disabled={aiLoading || loading || !user} // 로그인 상태 확인 추가
                 sx={{ position: 'relative', py: 1.5 }}
               >
                 {aiLoading ? <CircularProgress size={24} color="inherit" /> : 'AI 이미지 생성'}

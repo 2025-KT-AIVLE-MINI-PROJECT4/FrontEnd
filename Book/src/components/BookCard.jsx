@@ -10,7 +10,7 @@ const BookCard = ({ book, isOwner, onEdit, onDelete, onView }) => {
       <CardMedia
         component="img"
         height="200"
-        image={book.imageURL || defaultImage} // imageURL 사용
+        image={book.imageUrl || defaultImage} // imageUrl 사용
         alt={book.title}
         sx={{ objectFit: 'contain', p: 2, bgcolor: '#f0f0f0' }}
         onClick={() => onView(book.id)} // 클릭 시 상세 페이지로 이동

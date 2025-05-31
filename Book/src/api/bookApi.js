@@ -12,7 +12,7 @@ const mapBookResponseToFrontend = (apiBook) => {
     content: apiBook.content,
     price: apiBook.price,
     category: apiBook.category,
-    imageURL: apiBook.imageURL,
+    imageUrl: apiBook.imageUrl,
     authorId: apiBook.authorId,
     authorName: apiBook.authorName,
     createdAt: apiBook.createdAt,
@@ -30,7 +30,7 @@ const mapBookRequestToBackend = (frontendBook) => ({
   content: frontendBook.content,
   price: frontendBook.price,
   category: frontendBook.category,
-  imageURL: frontendBook.imageURL,
+  imageUrl: frontendBook.imageUrl,
 });
 
 export const getBooks = async () => {

@@ -27,10 +27,10 @@ const MyBooksPage = ({ onNavigate, onEditBook, onSelectBook }) => {
   };
 
   // user와 showToast가 변경될 때마다 loadMyBooks를 다시 로드
-  // user는 로그인/로그아웃 시 변경, showToast는 일반적으로 안정적
+  // user는 로그인/로그아웃 시 변경
   useEffect(() => {
     loadMyBooks();
-  }, [user, showToast]); // 의존성 배열에 user와 showToast 유지
+  }, [user]);
 
   const handleDeleteClick = (book) => {
     setBookToDelete(book);

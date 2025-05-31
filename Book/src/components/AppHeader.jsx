@@ -1,4 +1,3 @@
-// src/components/AppHeader.jsx
 import React from 'react';
 import { AppBar, Toolbar, Typography, Button, Box, Avatar, Menu, MenuItem } from '@mui/material';
 import { BookOutlined, AccountCircle } from '@mui/icons-material';
