@@ -102,9 +102,7 @@ const MainPage = ({ onNavigate, onSelectBook }) => {
                     book={book}
                     isOwner={user && parseInt(book.authorId, 10) === parseInt(user.id, 10)} // isOwner 판단 로직 (타입 일치 확인)
                     onEdit={() => onNavigate('editBook', book)} // 수정 버튼 동작
-                    // --- onDelete prop 연결 수정 ---
-                    onDelete={handleDeleteClick} // 이제 handleDeleteClick 함수를 전달
-                    // -----------------------------
+                    onDelete={handleDeleteClick}
                     onView={() => onSelectBook('bookDetail', book.id)} // 상세 페이지 이동
                   />
                 </Grid>
