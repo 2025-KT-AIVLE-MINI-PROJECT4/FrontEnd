@@ -1,17 +1,17 @@
 // src/pages/main/MainPage.jsx
-import React, { useState, useEffect, useCallback } from 'react'; // useCallback import
-import { getBooks, deleteBook as apiDeleteBook } from '../../api/bookApi'; // deleteBook import
+import React, { useState, useEffect, useCallback } from 'react';
+import { getBooks, deleteBook as apiDeleteBook } from '../../api/bookApi';
 import BookCard from '../../components/BookCard';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { useAuth } from '../../contexts/AuthContext';
-import { Box, Typography, Grid, Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material'; // Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress import
-import RefreshIcon from '@mui/icons-material/Refresh'; // RefreshIcon import
+import { Box, Typography, Grid, Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 const MainPage = ({ onNavigate, onSelectBook }) => {
   const { user, showToast } = useAuth();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); // 에러 상태 추가
+  const [error, setError] = useState(null);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [bookToDelete, setBookToDelete] = useState(null);
@@ -29,7 +29,7 @@ const MainPage = ({ onNavigate, onSelectBook }) => {
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, []);
 
   useEffect(() => {
     // 컴포넌트 마운트 시 한 번만 호출

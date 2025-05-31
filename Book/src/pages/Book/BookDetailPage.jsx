@@ -76,10 +76,10 @@ const BookDetailPage = ({ bookId, onNavigate, onEditBook }) => {
         <Paper elevation={4} sx={{ borderRadius: 2, overflow: 'hidden' }}>
           <Grid container>
             <Grid item xs={12} md={4}>
-              {book.imageURL ? (
+              {book.imageUrl ? (
                 <Box
                   component="img"
-                  src={book.imageURL}
+                  src={book.imageUrl}
                   alt={book.title}
                   sx={{ width: '100%', height: '100%', objectFit: 'contain', p: 2, bgcolor: '#f0f0f0' }}
                 />
