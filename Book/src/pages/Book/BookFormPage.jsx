@@ -26,12 +26,13 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
   const { user, showToast, loading: authLoading } = useAuth();
   const [form, setForm] = useState({
     title: '', author: '', publisher: '', publishedDate: '',
-    content: '', price: '', category: '', imageUrl: ''
+    content: '', price: '', category: '', imageUrl: '' 
   });
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false); // AI 이미지 생성 로딩 상태
 
   const isEditing = initialBook !== null;
+  const MAX_CONTENT_LENGTH = 300; // 내용 글자수 제한 상수
 
   useEffect(() => {
     if (isEditing && initialBook) {
@@ -55,7 +56,12 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    if (name === "content" && value.length > MAX_CONTENT_LENGTH) {
+      // 500자 초과 시 입력 방지
+      setForm(prev => ({ ...prev, [name]: value.substring(0, MAX_CONTENT_LENGTH) }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -69,8 +75,6 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
       const submittedForm = {
         ...form,
         price: form.price === '' ? null : Number(form.price),
-        // imageUrl 필드는 이미 form 상태에 있으며, DALL-E URL이 저장됩니다.
-        // 이 URL이 mapBookRequestToBackend를 통해 백엔드로 전달됩니다.
       };
 
       let resultBook;
@@ -90,7 +94,6 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
     }
   };
 
-  // DALL-E API 호출 및 이미지 URL 반환 함수
   const generateImageWithAI = async (prompt) => {
     if (!OPENAI_API_KEY) {
       showToast('OpenAI API 키가 설정되지 않았습니다.', 'error');
@@ -106,19 +109,18 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
           'Authorization': `Bearer ${OPENAI_API_KEY}`
         },
         body: JSON.stringify({
-          model: "dall-e-3", // DALL-E 3 모델 사용
+          model: "dall-e-3",
           prompt: prompt,
           n: 1,
-          size: '1024x1024' // 더 높은 해상도 (DALL-E 3는 1024x1024, 1792x1024, 1024x1792 지원)
+          size: '1024x1024'
         })
       });
 
       const data = await response.json();
       if (response.ok) {
         console.log("DALL-E API 응답:", data);
-        return data.data[0].url; // 생성된 이미지의 임시 URL 반환
+        return data.data[0].url;
       } else {
-        // API 에러 상세 정보 로깅
         console.error("DALL-E API Error Response:", data);
         throw new Error(data.error?.message || '이미지 생성 실패');
       }
@@ -137,7 +139,6 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
         return;
     }
 
-    // AI 이미지 생성을 위한 프롬프트 생성
     const promptParts = [];
     if (form.title.trim()) promptParts.push(`"${form.title}"이라는 제목의`);
     if (form.content.trim()) promptParts.push(`줄거리는 "${form.content}"입니다.`);
@@ -147,7 +148,7 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
     if (generatedPrompt.trim()) {
         generatedPrompt = `책 표지 이미지: ${generatedPrompt}.`;
     } else {
-        generatedPrompt = "책 표지 이미지"; // 최소한의 프롬프트
+        generatedPrompt = "책 표지 이미지";
     }
 
     if (!generatedPrompt.trim()) {
@@ -158,12 +159,10 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
     showToast('AI 이미지 생성 중... 잠시 기다려주세요.', 'info');
 
     try {
-        // DALL-E로 새 이미지 생성
-        const dalleimageUrl = await generateImageWithAI(generatedPrompt);
+        const dalleImageUrl = await generateImageWithAI(generatedPrompt);
 
-        if (dalleimageUrl) {
-            // 생성된 DALL-E URL을 바로 imageUrl 상태에 저장
-            setForm(prev => ({ ...prev, imageUrl: dalleimageUrl }));
+        if (dalleImageUrl) {
+            setForm(prev => ({ ...prev, imageUrl: dalleImageUrl })); 
             showToast('AI 이미지 생성이 완료되었습니다!', 'success');
         }
     } catch (error) {
@@ -224,7 +223,9 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
                 InputLabelProps={{ shrink: true }}
               />
               <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>내용(줄거리)</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                  내용(줄거리) ({form.content.length}/{MAX_CONTENT_LENGTH}자) {/* 글자수 표시 */}
+                </Typography>
                 <StyledTextarea
                   minRows={4}
                   id="content"
@@ -232,6 +233,7 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
                   value={form.content}
                   onChange={handleChange}
                   placeholder="도서 내용을 입력하세요..."
+                  maxLength={MAX_CONTENT_LENGTH}
                 />
               </Box>
               <TextField
@@ -257,8 +259,8 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
               <TextField
                 fullWidth
                 label="이미지 URL"
-                id="imageUrl"
-                name="imageUrl"
+                id="imageUrl" 
+                name="imageUrl" 
                 type="url"
                 value={form.imageUrl}
                 onChange={handleChange}
@@ -295,7 +297,7 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>이미지 미리보기</Typography>
               <Box
                 component="img"
-                src={form.imageUrl || 'https://via.placeholder.com/250x350?text=No+Image'}
+                src={form.imageUrl || 'https://via.placeholder.com/250x350?text=No+Image'} 
                 alt="도서 이미지"
                 sx={{
                   width: '100%',
@@ -313,7 +315,7 @@ const BookFormPage = ({ initialBook = null, onComplete, onCancel }) => {
                 startIcon={<AutoAwesomeIcon />}
                 onClick={handleGenerateAndUploadImage}
                 fullWidth
-                disabled={aiLoading || loading || !user} // 로그인 상태 확인 추가
+                disabled={aiLoading || loading || !user}
                 sx={{ position: 'relative', py: 1.5 }}
               >
                 {aiLoading ? <CircularProgress size={24} color="inherit" /> : 'AI 이미지 생성'}
