@@ -24,7 +24,7 @@
 
 ## 📁 프로젝트 구조
 ```
-FRONTEND
+Book
 ├── public                   # 정적 자산 (index.html, 파비콘 등)
 │   └── index.html
 ├── src
