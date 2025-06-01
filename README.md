@@ -23,7 +23,7 @@
 * **린터:** ESLint
 
 ## 📁 프로젝트 구조
-
+```
 FRONTEND
 ├── public                   # 정적 자산 (index.html, 파비콘 등)
 │   └── index.html
@@ -58,7 +58,7 @@ FRONTEND
 ├── package.json             # 프로젝트 의존성 및 스크립트 정의
 ├── package-lock.json        # 정확한 의존성 버전 관리
 └── README.md                # 현재 파일
-
+```
 
 ## 🛠️ 개발 환경 설정
 
